@@ -1,0 +1,772 @@
+/*
+	Author: Ethan Ramm
+	Date: 10/22/2018
+	Program: Battleship Game
+*/
+
+#ifndef PA6 //guard code 
+#define PA6
+#define _CRT_SECURE_NO_WARNINGS 
+#define HORIZONTAL 0
+#define VERTICAL 1
+#define NUMBERROWS 10
+#define NUMBERCOL 10
+#define NUMBSHIPS 5
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+typedef struct stats
+{
+	int hits;
+	int misses;
+	int shots;
+	double accuracy;
+	char win_loss;
+}Stats;
+
+void main_menu();
+void int_game_board(char board[][10]);
+void place_ships_manually(char player1board[][10], int p_num);
+void place_ships_randomly(char player1board[][10]);
+void rand_place(int row, int column, int ship, char board[][10], int way);
+int gen_direction(void);
+void gen_start_point(int dir, int ship_length, int *row_ptr, int *col_ptr);
+int gen_way(void);
+int total_chunk(char player1board[][10]);
+void moa(int *num);
+int char_counter(char player1board[][10], int row_column, int true_false, char diff_ship);
+void fire(char board[][10], FILE *logfile, int num_player, Stats *stats_ptr);
+void pause_clear();
+void is_winner(char board[][10], char board1[][10], FILE *outfile, Stats *stats_ptr, Stats *comp_stats);
+void update_board(char hits[][10]);
+void rand_fire(char board[][10], FILE *logfile, int num_player, char mode, Stats *stats_ptr);
+void display_board1(char player1board[][10], int p_num);
+void check_water(char board[][10], FILE *logfile, int player_num, Stats *stats_ptr);
+char get_difficulty(void);
+
+
+#endif
+
+
+#include "header.h"
+
+void main_menu()
+{
+	printf("\n\n\n\n \t\t\t\t\tWelcome to Battleship!\n\n\t\t\t\t\t");
+	system("pause");
+	system("cls");
+}
+
+char get_difficulty(void)
+{
+	char mode = '\0';
+
+	printf("\n\n\n\n \t\t\t\t What gamemode which you like to play? N | M | H ");
+	scanf(" %c", &mode);
+
+	return mode;
+}
+
+void int_game_board(char board[][10])
+{
+	for (int j = 0; j < 10; ++j)
+	{
+		for (int i = 0; i < 10; ++i)
+		{
+			board[j][i] = '~';
+		}
+	}
+}
+
+void display_board1(char player1board[][10], int p_num)
+{
+	char arr[10][10];
+	switch (p_num)
+	{
+	case 1:
+
+		for (int i = 0; i < NUMBERCOL;)
+		{
+			for (int j = 0; j < NUMBERROWS;)
+			{
+				switch (player1board[i][j])
+				{
+				case '~':
+				case 'C':
+				case 'B':
+				case 'S':
+				case 'D':
+				case 'R':
+					arr[i][j] = '~';
+					break;
+				case 'M':	arr[i][j] = 'M';
+					break;
+				case 'H':	arr[i][j] = 'H';
+					break;
+				default:	arr[i][j] = '~';
+					break;
+				} ++j;
+			}
+			++i;
+		}
+
+		printf("\n");
+		for (int j = 0; j < 10; ++j)
+		{
+			printf("\t\t\t\t\t\t  ");
+			for (int i = 0; i < 10; ++i)
+			{
+				printf(" %c", arr[j][i]);
+			}
+			printf("\n");
+		}
+
+		break;
+	default:
+		printf("\n");
+		for (int j = 0; j < 10; ++j)
+		{
+			printf("\t\t\t\t\t\t  ");
+			for (int i = 0; i < 10; ++i)
+			{
+				printf(" %c", player1board[j][i]);
+			}
+			printf("\n");
+		}
+		break;
+	}
+	
+		
+	
+	
+}
+
+void moa(int *num)
+{
+	char input = '\0';
+	printf("\n\n\n\n\n\n\n\t\t\tWould you like to place your ships automatically or manually? (M/A) ");
+	scanf(" %c", &input);
+	system("cls");
+	*num = input;
+}
+
+void pause_clear()
+{
+	printf("\n\t\t\t\t\t\t");
+	system("pause");
+	system("cls");
+}
+
+void place_ships_manually(char player1board[][10], int p_num)
+{
+	int x1 = 0, y1 = 0;
+	char *str1 = "Enter a coordinate to place chunk of ship";
+	char *str2 = "You have already used that coordinate..";
+	char *str3 = "Enter a coordinate to place chunk of ship: ";
+
+	for (int o = 0; o < 5; ++o)
+	{
+		printf("\n\n\n\n");
+		if (o == 0)
+		{
+			display_board1(player1board, 0);
+			printf("\n\n\t\t\t\t\t\t\tCarrier \n");
+			for (int t = 0; t < 5; ++t)
+			{
+				printf("\n\t\t\t\t\t%s: ", str1);
+				scanf("%d%d", &x1, &y1);				
+				if (player1board[x1][y1] != '~')
+				{
+					printf("\n\t\t\t\t\t%s\n", str2);
+					printf("\n\t\t\t\t\t%s", str3);
+					scanf("%d%d", &x1, &y1);
+				}
+				player1board[x1][y1] = 'C';
+			}
+			display_board1(player1board, 0);
+			pause_clear();
+
+		}
+		else if (o == 1)
+		{
+			display_board1(player1board, 0);
+			printf("\n\n\t\t\t\t\t\t\tBattleship \n");
+			for (int t = 0; t < 4; ++t)
+			{
+				printf("\n\t\t\t\t\t%s: ", str1);
+				scanf("%d%d", &x1, &y1);				
+				if (player1board[x1][y1] != '~')
+				{
+					printf("\n\t\t\t\t\t%s\n", str2);
+					printf("\n\t\t\t\t\t%s", str3);
+					scanf("%d%d", &x1, &y1);
+				}
+				player1board[x1][y1] = 'B';
+			}
+			display_board1(player1board, 0);
+			pause_clear();
+		}
+
+		else if (o == 2)
+		{
+			display_board1(player1board, 0);
+			printf("\n\n\t\t\t\t\t\t\tCruiser \n");
+			for (int t = 0; t < 3; ++t)
+			{
+				printf("\n\t\t\t\t\t%s", str1);
+				scanf("%d%d", &x1, &y1);
+				if (player1board[x1][y1] != '~')
+				{
+					printf("\n\t\t\t\t\t%s\n", str2);
+					printf("\n\t\t\t\t\t%s", str3);
+					scanf("%d%d", &x1, &y1);
+				}
+				player1board[x1][y1] = 'S';
+			}
+			display_board1(player1board, 0);
+			pause_clear();
+		}
+
+		else if (o == 3)
+		{
+			display_board1(player1board, 0);
+			printf("\n\n\t\t\t\t\t\t\tDestroyer \n");
+			for (int t = 0; t < 3; ++t)
+			{
+				printf("\n\t\t\t\t\t%s", str1);
+				scanf("%d%d", &x1, &y1);
+				if (player1board[x1][y1] != '~')
+				{
+					printf("\n\t\t\t\t\t%s\n", str2);
+					printf("\n\t\t\t\t\t%s", str3);
+					scanf("%d%d", &x1, &y1);
+				}
+				player1board[x1][y1] = 'R';
+			}
+			display_board1(player1board, 0);
+			pause_clear();
+		}
+
+		else if (o == 4)
+		{
+			display_board1(player1board, 0);
+			printf("\n\n\t\t\t\t\t\t\tDestroyer \n");
+			for (int t = 0; t < 2; ++t)
+			{
+				printf("\n\t\t\t\t\t%s", str1);
+				scanf("%d%d", &x1, &y1);
+				if (player1board[x1][y1] != '~')
+				{
+					printf("\n\t\t\t\t\t%s\n", str2);
+					printf("\n\t\t\t\t\t%s", str3);
+					scanf("%d%d", &x1, &y1);
+				}
+				player1board[x1][y1] = 'D';
+			}
+			display_board1(player1board, 0);
+			pause_clear();
+		}
+
+
+	}
+}
+
+
+int char_counter(char player1board[][10], int row_column, int true_false, char diff_ship)
+{
+	int num_char = 0, output = 0;
+
+	for (int i = 0; i < 10; ++i)
+	{
+		if (true_false == 1) // row
+		{
+			if (player1board[row_column][i] == '~')
+			{
+				++num_char;
+			}
+			else
+			{
+				num_char = 0;
+			}
+		}
+		else if (true_false == 0)
+		{
+			if (player1board[i][row_column] == '~')
+			{
+				++num_char;
+			}
+			else
+			{
+				num_char = 0;
+			}
+		}
+	}
+
+	return num_char;
+}
+
+int total_chunk(char player1board[][10])
+{
+	int num_char = 0;
+
+	for (int i = 0; i < 10;)
+	{
+		for (int j = 0; j < 10;)
+		{
+			if (player1board[i][j] != '~')
+			{
+				++num_char;
+			}
+			j++;
+		}
+		i++;
+	}
+	return num_char;
+}
+
+int gen_direction(void)
+{
+	int direction = 0;
+
+	direction = rand() % 2;
+
+	return direction;
+}
+
+void gen_start_point(int dir, int ship_length, int *row_ptr, int *col_ptr)
+{
+	if (dir == HORIZONTAL) // horizontal
+	{
+		*row_ptr = rand() % NUMBERROWS;
+		*col_ptr = rand() % (NUMBERCOL - ship_length + 1);
+	}
+	else if (dir == VERTICAL)
+	{
+		*row_ptr = rand() % (NUMBERROWS - ship_length + 1);
+		*col_ptr = rand() % NUMBERCOL;
+	}
+}
+
+int gen_way(void)
+{
+	int way = 0;
+
+	way = rand() % 5;
+
+	return way;
+}
+
+void place_ships_randomly(char player1board[][10])
+{
+
+	int column_or_row = 0, row = 0, column = 0, count = 0, chunk = 0, dir = 0, way = 0, d = 0;
+
+	int ship = 0;
+	while (d == 0)
+	{
+		for (int i = 1; i < 6;)
+		{
+
+			dir = gen_direction();
+
+			switch (i)
+			{
+			case 1:	rand_place(row, column, 5, player1board, way);
+				ship = 5;
+				break;
+			case 2: rand_place(row, column, 4, player1board, way);
+				ship = 4;
+				break;
+			case 3: rand_place(row, column, 3, player1board, way);
+				ship = 3;
+				break;
+			case 4: rand_place(row, column, 2, player1board, way);
+				ship = 2;
+				break;
+			case 5: rand_place(row, column, 1, player1board, way);
+				ship = 1;
+				break;
+			}
+			++i;
+			chunk = total_chunk(player1board);
+			if (chunk < 17 && i == 6)
+			{
+				i = 1;
+				int_game_board(player1board);
+			}
+			else
+			{
+				d = 1;
+			}
+		}
+	}
+}
+
+
+void rand_place(int row, int column, int ship, char board[][10], int way)
+{
+	int count = 0;
+	int max = 0;
+	int dir = 0;
+	int size = 0;
+	int good = 0, chunk = 0;
+	char othership1 = '\0';
+	switch (ship)
+	{
+	case 5: max = 6;
+		size = 5;
+		othership1 = 'C';
+		break;
+	case 4: max = 7;
+		size = 4;
+		othership1 = 'B';
+		break;
+	case 3: max = 8;
+		size = 3;
+		othership1 = 'S';
+		break;
+	case 2: max = 8;
+		size = 3;
+		othership1 = 'R';
+		break;
+	case 1: max = 9;
+		size = 2;
+		othership1 = 'D';
+		break;
+	default:
+		break;
+	}
+				dir = gen_direction();
+				gen_start_point(dir, ship, &row, &column);
+				switch (dir)
+				{
+					case HORIZONTAL: 
+						for (int t = 0; t < size;)
+						{
+							if (board[row][column] == '~')
+							{
+								board[row][column] = othership1;
+								++column;
+							}
+							++t;
+						}
+									
+					break;
+					case VERTICAL:
+						for (int t = 0; t < size;)
+						{
+							if (board[row][column] == '~')
+							{
+								board[row][column] = othership1;
+								++row;
+							}
+							++t;
+						}
+						;
+					break;			
+			}
+}
+
+void fire(char board[][10], FILE *logfile, int num_player, Stats *stats_ptr)
+{
+	int x1, y1;
+	char boat = '\0';
+	printf("\n\n\n\n\t\t\t\t\t     Enter coordinate to fire at! ");
+	scanf("%d%d", &x1, &y1);
+
+	switch (board[x1][y1])
+	{
+	case'C':
+	case'D':
+	case'B':
+	case'S':
+	case'R':
+		printf("\n\t\t\t\t\t\t Player %d Hit! (%d, %d)\n", num_player, x1, y1);
+		fprintf(logfile, "Player 2 was Hit at (%d, %d)\n", x1, y1);
+		--x1;
+		--y1;
+		board[x1][y1] = 'H';
+		(*++stats_ptr).hits;
+		break;
+	case '~':
+		printf("\n\t\t\t\t\t\t     No hit: (%d, %d)\n", x1, y1);
+		fprintf(logfile, "Player 1 Missed at (%d, %d)\n", x1, y1);
+		--x1;
+		--y1;
+		board[x1][y1] = 'M';
+		(*++stats_ptr).misses;
+		break;
+	}
+}
+
+
+void rand_fire(char board[][10], FILE *logfile, int num_player, char mode, Stats *stats_ptr)
+{
+	int x1, y1;
+	int shots; 
+	switch (mode)
+	{
+	case 'N':
+	case 'n':
+		shots = 1;
+		break;
+	case 'M':
+	case 'm':
+		shots = 2;
+		break;
+	case 'H':
+	case 'h':
+		shots = 3;
+		break;
+	default:
+		break;
+	}
+
+
+	for (int i = 0; i < shots; i++)
+	{
+		x1 = rand() % 10;
+		y1 = rand() % 10;
+		--x1;
+		--y1;
+		switch (board[x1][y1])
+		{
+		case'C':
+		case'D':
+		case'B':
+		case'S':
+		case'R':
+
+			printf("\n\t\t\t\t\t\t      Player 1 Hit!\n");
+			fprintf(logfile, "Player 1 was Hit on (%d, %d)\n", x1, y1);	
+
+			board[x1][y1] = 'H';
+			++(*stats_ptr).hits;
+			i = 3;
+			break;
+
+		case '~':
+
+			if (i == shots - 1)
+			{
+				printf("\n\t\t\t\t\t\t     No hit: (%d, %d)\n", x1, y1);
+				fprintf(logfile, "Player 2 missed at (%d, %d)\n", x1, y1);
+				--x1;
+				--y1;
+				board[x1][y1] = 'M';
+				(*++stats_ptr).misses;
+			}
+		
+			break;
+
+		}
+	}
+	++(*stats_ptr).shots;
+}
+
+	
+
+	
+void check_water(char board[][10], FILE *logfile, int player_num, Stats *stats_ptr)
+{
+	int arr[5] = { 0 };
+	char *ships[5][10] = { {"Carrier"} , {"Battleship" } , {"Submarine"} , {"Cruiser"} , {"Destroyer"} };
+
+	for (int i = 0; i < NUMBERROWS;)
+	{
+		for (int j = 0; j < NUMBERCOL;)
+		{
+			switch (board[i][j])
+			{
+			case 'C': ++arr[0];
+				break;
+			case 'B': ++arr[1];
+				break;
+			case 'S': ++arr[2];
+				break;
+			case 'R': ++arr[3];
+				break;
+			case 'D': ++arr[4];
+				break;
+			default:
+				break;
+			} ++j;
+		} ++i;
+	}
+
+	printf("\n\t\t\t\t\t\t    Player %d Ships\n", player_num);
+	for (int i = 0; i < 5; ++i)
+	{
+		if (arr[i] == 0)
+		{
+			printf("\n\t\t\t\t\tPlayer %d's %s Sunk\n", player_num, ships[i][10]);
+			fprintf(logfile, "\nPlayer %d's %s Sunk\n", player_num, ships[i][10]);
+		}
+	}
+
+}
+
+void is_winner(char board[][10], char board1[][10], FILE *outfile, Stats *stats_ptr, Stats *comp_stats)
+{
+	int p1count = 0, p2count = 0;
+	for (int d = 0; d < 2;)
+	{
+		for (int i = 0; i < NUMBERROWS;)
+		{
+			for (int j = 0; j < NUMBERCOL;)
+			{
+				switch (d)
+				{
+				case 0:
+					if (board[i][j] == 'C', 'B', 'D', 'S', 'R')
+					{
+						++p1count;
+					}
+					else
+					break;
+				case 1:
+					if (board[i][j] == 'C', 'B', 'D', 'S', 'R')
+					{
+						++p2count;
+					}
+					else
+				default:
+					break;
+				}
+				
+			}
+		}
+	}
+	fprintf(outfile, "\n %d", (*stats_ptr).hits);
+	fprintf(outfile, "\n %d", (*stats_ptr).misses);
+	fprintf(outfile, "\n %d", (*comp_stats).hits);
+	fprintf(outfile, "\n %d", (*comp_stats).misses);
+
+	(*stats_ptr).accuracy = ((*stats_ptr).hits) / (double)((*stats_ptr).misses);
+	fprintf(outfile, "\n %lf", (*stats_ptr).accuracy);
+	(*comp_stats).accuracy = ((*comp_stats).hits) / ((*comp_stats).misses);
+	fprintf(outfile, "\n %lf", (*stats_ptr).accuracy);
+
+	if (p1count > p2count)
+	{
+		pause_clear();
+		printf("\n\n\n\t\t\t\t\tPlayer 1 has won the game!");
+		(*stats_ptr).win_loss = 'W';
+		(*comp_stats).win_loss = 'L';
+	}
+	else if (p2count > p1count)
+	{
+		pause_clear();
+		printf("\n\n\n\t\t\t\t\tPlayer 2 has won the game!");
+		(*stats_ptr).win_loss = 'L';
+		(*comp_stats).win_loss = 'W';
+	}
+	else
+	{
+		printf("\n\n\n\t\t\t\t\t\t\tDraw");
+	}
+}
+
+int main(void)
+{
+	char player1board[10][10], player2board[10][10]; //rows by columns
+	char hits1[10][10], hits2[10][10], mode = '\0';
+	int x1 = 0, y1 = 0, visible = 0;
+	int placed = 0, manual_or_auto = 0;
+	int p1count = 0, p2count = 0;
+	int input = 0;
+	FILE *logfile = NULL; //data file log
+
+	Stats player = { 0 , 0 , 0 , 0.0 , '\0' }; //player stats 
+	Stats computer = { 0 , 0 , 0 , 0.0 , '\0' }; //computers stats
+
+	main_menu(); //prints main menu 
+
+	mode = get_difficulty(); //asks for difficulty 
+
+
+	for (int i = 1; i < 3; ++i) //loop to place ships 
+	{
+		srand((unsigned int)time(NULL));
+
+		switch (i) //switches between players to place ships                                            
+		{
+		case 1:
+			int_game_board(player1board);
+			int_game_board(hits1);
+
+				moa(&manual_or_auto);
+
+			switch (manual_or_auto)
+			{
+			case 'm':
+			case 'M':
+					place_ships_manually(player1board, 0);
+					printf("\n\n\n\n\t\t\t\t\t\t     Player 1's Board\n");
+					display_board1(player1board, 0);
+					placed = 1;
+				break;
+			case 'a':
+			case 'A':
+				place_ships_randomly(player1board);
+				printf("\n\n\n\n\t\t\t\t\t\t     Player 1's Board\n");
+				display_board1(player1board, 0);
+				placed = 1;
+				break;
+			}
+			break;
+		case 2:	
+			int_game_board(player2board);
+			int_game_board(hits2);
+			place_ships_randomly(player2board);
+			placed = 1;
+			break;
+		}
+	}  
+
+	pause_clear();
+
+	while (placed == 1)
+	{
+		logfile = fopen("battleship.log", "w");
+		int rounds = 1;
+		for (; rounds < 11; ++rounds)
+		{ 
+			int player_num = 0;
+			if (rounds == 1)
+				player_num = rand() % 1;
+			for (; player_num < 3;player_num++)
+			{
+				switch (player_num) //changes value of 
+				{
+				case 1:
+					printf("\n\n\t\t\t\t\t\t    Round #%d Player %d\n", rounds, player_num);
+					visible = 1;
+					display_board1(player2board, visible);
+					fire(player2board, logfile, player_num, &player);
+					display_board1(player2board, visible);
+					visible = 0;
+					pause_clear();
+					break;
+				case 2:
+					printf("\n\n\t\t\t\t\t\t    Round #%d Player %d\n", rounds, player_num);
+					rand_fire(player1board, logfile, player_num, mode, &computer);
+					display_board1(player1board, visible);
+					pause_clear();
+					break;
+				default:
+					break;
+				}
+			}
+			if (rounds == 10)
+			{
+				placed = 0;
+			}
+		}
+	}
+	is_winner(player1board, player2board, logfile, &player, &computer);
+	fclose(logfile);
+
+	return 0;
+}
